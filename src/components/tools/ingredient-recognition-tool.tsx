@@ -1,6 +1,5 @@
 "use client";
 
-import { GoogleGenAI } from "@google/genai";
 import { FileText, Sparkles } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
@@ -10,10 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { ResultPanel } from "./result-panel";
 import { ToolHeader } from "./tool-header";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-});
 
 type Status = "idle" | "loading" | "done";
 
@@ -34,31 +29,14 @@ export function IngredientRecognitionTool() {
     try {
       setStatus("loading");
 
-      const interaction = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
-        contents: `Extract the ingredients explicitly mentioned in this food description:
-
-${description}
-
-Return only Markdown without a code block.
-
-If the dish name is mentioned, start with:
-Here's a quick summary of the ingredients you used for **Dish name**:
-
-Otherwise start with:
-Here's a quick summary of the ingredients mentioned:
-
-Then return one bullet for each ingredient:
-- **Ingredient name**
-
-Rules:
-- Do not add ingredients that are not mentioned in the description.
-- List each ingredient only once.
-- Keep ingredient names concise.
-- Add a short clarification in parentheses only when it appears in the description.`,
+      const response = await fetch("/api/ingredient-recognition", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description }),
       });
+      const { text } = await response.json();
 
-      setResult(interaction.text ?? "");
+      setResult(text ?? "");
     } catch (error) {
       console.log("ERROR", error);
     }

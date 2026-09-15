@@ -2,16 +2,11 @@
 
 import { FileText, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { GoogleGenAI } from "@google/genai";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ResultPanel } from "./result-panel";
 import { ToolHeader } from "./tool-header";
 import Markdown from "react-markdown";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-});
 
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -54,52 +49,14 @@ export function ImageAnalysisTool() {
     const base64 = await fileToBase64(image!);
     try {
       setStatus("loading");
-      const interaction = await ai.models.generateContent({
-        model: "gemini-2.5-flash-lite",
-        contents: [
-          {
-            inlineData: {
-              mimeType: image!.type,
-              data: base64,
-            },
-          },
-          {
-            text: `Analyze the food image and identify only the ingredients or food items that are visibly present.
-
-Return only Markdown without a code block. Start with this exact sentence:
-Here's a breakdown of the items visible in the image:
-
-Group the detected items using this nested-list format:
-- **Vegetables:**
-    - Item name
-- **Proteins:**
-    - Item name
-- **Fruits:**
-    - Item name
-- **Grains/Seeds:**
-    - Item name
-- **Snacks/Treats:**
-    - Item name
-- **Dairy:**
-    - Item name
-- **Sauces/Condiments:**
-    - Item name
-- **Other:**
-    - Item name
-
-Rules:
-- Omit categories with no detected items.
-- List each visible item only once.
-- Do not include a food name, recipe, nutrition estimate, or preparation instructions.
-- Do not invent hidden ingredients. If an item is uncertain, add a short clarification in parentheses.
-- Keep item names concise.`,
-          },
-        ],
+      const res = await fetch("/api/image-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64, mimeType: image!.type }),
       });
+      const { text } = await res.json();
 
-      console.log(interaction);
-
-      setResponse(interaction.text!);
+      setResponse(text);
     } catch (error) {
       console.log("ERROR", error);
     }

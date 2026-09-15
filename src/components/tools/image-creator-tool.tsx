@@ -6,11 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ResultPanel } from "./result-panel";
 import { ToolHeader } from "./tool-header";
-import { InferenceClient } from "@huggingface/inference";
 
 type Status = "idle" | "loading" | "done";
-
-const client = new InferenceClient(process.env.NEXT_PUBLIC_HF_TOKEN);
 
 export function ImageCreatorTool() {
   const [value, setValue] = useState("");
@@ -25,17 +22,13 @@ export function ImageCreatorTool() {
   async function handleGenerate() {
     if (!value.trim()) return;
     setStatus("loading");
-    const dataUrl = await client.textToImage(
-      {
-        provider: "fal-ai",
-        model: "black-forest-labs/Flux.1-dev",
-        inputs: value,
-      },
-      {
-        outputType: "dataUrl",
-      },
-    );
-    setImageUrl(dataUrl);
+    const res = await fetch("/api/image-creator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: value }),
+    });
+    const { imageUrl } = await res.json();
+    setImageUrl(imageUrl);
     setStatus("done");
   }
 

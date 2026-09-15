@@ -1,6 +1,5 @@
 "use client";
 
-import { GoogleGenAI } from "@google/genai";
 import { MessageCircle, Send, X } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
@@ -16,13 +15,6 @@ type Message = {
 const INITIAL_MESSAGES: Message[] = [
   { role: "assistant", content: "How can I help you today?" },
 ];
-
-const SYSTEM_INSTRUCTION =
-  "You are the assistant for a food AI app. The app lets users analyze a food photo, identify ingredients from a description, or generate a food image. Answer questions about food, ingredients, and the app's tools. Keep replies short and conversational.";
-
-const ai = new GoogleGenAI({
-  apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
-});
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -43,21 +35,14 @@ export function ChatWidget() {
     setLoading(true);
 
     try {
-      const interaction = await ai.models.generateContent({
-        model: "gemini-flash-lite-latest",
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTION,
-        },
-        contents: nextMessages.map((message) => ({
-          role: message.role === "assistant" ? "model" : "user",
-          parts: [{ text: message.content }],
-        })),
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages }),
       });
+      const { text } = await response.json();
 
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: interaction.text ?? "" },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", content: text }]);
     } catch (error) {
       console.log("ERROR", error);
     }
